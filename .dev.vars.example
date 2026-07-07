@@ -3,7 +3,6 @@
 PNPR_PUBLIC_URL=http://localhost:8787
 PNPR_R2_ACCOUNT_ID=<cloudflare-account-id>
 PNPR_R2_BUCKET=pnpr-packages-dev
-PNPR_R2_PREFIX=packages
 PNPR_SECRET=<at-least-16-bytes-random-secret>
 PNPR_R2_ACCESS_KEY_ID=<r2-access-key-id>
 PNPR_R2_SECRET_ACCESS_KEY=<r2-secret-access-key>

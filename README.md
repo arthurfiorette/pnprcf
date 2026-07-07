@@ -50,28 +50,38 @@ npx wrangler r2 bucket list
 npx wrangler r2 bucket info pnpr-packages
 ```
 
-Use `pnpr-packages` as `PNPR_R2_BUCKET` in `wrangler.jsonc`. Use `pnpr-packages-dev` as `PNPR_R2_BUCKET` in `.dev.vars` if you want local development to write to a separate bucket.
+Use `pnpr-packages` as `PNPR_R2_BUCKET`. Use `pnpr-packages-dev` as `PNPR_R2_BUCKET` in `.dev.vars` if you want local development to write to a separate bucket.
 
 2. Create an R2 API token with object read/write access to the bucket.
 
-3. Update `wrangler.jsonc` vars:
+3. Set required Worker secrets.
 
-```jsonc
-"vars": {
-  "PNPR_PUBLIC_URL": "https://pnpr-cloudflare-containers.<your-workers-subdomain>.workers.dev",
-  "PNPR_R2_ACCOUNT_ID": "<cloudflare-account-id>",
-  "PNPR_R2_BUCKET": "pnpr-packages",
-  "PNPR_R2_PREFIX": "packages"
-}
-```
-
-4. Set required Worker secrets:
+If you already created these in the Cloudflare dashboard under the Worker environment variables/secrets UI, you do not need to run `wrangler secret put` again. To create them from the CLI:
 
 ```bash
+npx wrangler secret put PNPR_PUBLIC_URL
 npx wrangler secret put PNPR_SECRET
+npx wrangler secret put PNPR_R2_ACCOUNT_ID
+npx wrangler secret put PNPR_R2_BUCKET
 npx wrangler secret put PNPR_R2_ACCESS_KEY_ID
 npx wrangler secret put PNPR_R2_SECRET_ACCESS_KEY
 ```
+
+Verify the secret names exist:
+
+```bash
+npx wrangler secret list
+```
+
+Suggested values:
+
+```text
+PNPR_PUBLIC_URL=https://pnpr.clickmax.co
+PNPR_R2_ACCOUNT_ID=<cloudflare-account-id>
+PNPR_R2_BUCKET=pnpr-packages
+```
+
+R2 object prefixes are hardcoded by this sample: hosted packages use `packages/`, and proxied upstream cache uses `cache/`.
 
 Use a stable `PNPR_SECRET` of at least 16 bytes. Changing it invalidates private cache namespaces.
 
@@ -130,11 +140,10 @@ These values are consumed by `pnpr.yaml` through pnpr's `${ENV_VAR}` substitutio
 
 | Name                        | Required                              | Secret | Purpose                                                                         |
 | --------------------------- | ------------------------------------- | ------ | ------------------------------------------------------------------------------- |
-| `PNPR_PUBLIC_URL`           | yes                                   | no     | Public Worker URL used to rewrite tarball URLs. Must match the URL clients use. |
+| `PNPR_PUBLIC_URL`           | yes                                   | yes    | Public Worker URL used to rewrite tarball URLs. Must match the URL clients use. |
 | `PNPR_SECRET`               | yes                                   | yes    | HMAC key for private cache namespaces. Keep stable across deploys.              |
-| `PNPR_R2_ACCOUNT_ID`        | yes                                   | no     | Cloudflare account ID used in the R2 S3 endpoint.                               |
-| `PNPR_R2_BUCKET`            | yes                                   | no     | R2 bucket for hosted package data.                                              |
-| `PNPR_R2_PREFIX`            | yes                                   | no     | Optional key prefix inside the bucket. Use `packages` by default.               |
+| `PNPR_R2_ACCOUNT_ID`        | yes                                   | yes    | Cloudflare account ID used in the R2 S3 endpoint.                               |
+| `PNPR_R2_BUCKET`            | yes                                   | yes    | R2 bucket for hosted package data and upstream cache.                           |
 | `PNPR_R2_ACCESS_KEY_ID`     | yes                                   | yes    | R2 S3 access key ID.                                                            |
 | `PNPR_R2_SECRET_ACCESS_KEY` | yes                                   | yes    | R2 S3 secret access key.                                                        |
 | `PNPR_LIBSQL_URL`           | only with `examples/pnpr.libsql.yaml` | yes    | Shared libsql/Turso auth database URL.                                          |
@@ -151,14 +160,17 @@ These values are consumed by `pnpr.yaml` through pnpr's `${ENV_VAR}` substitutio
 
 ```yaml
 storage: /pnpr/storage
-cache: /pnpr/cache
+cache: /mnt/r2/cache
 s3:
   bucket: ${PNPR_R2_BUCKET}
   region: auto
   endpoint: https://${PNPR_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  prefix: packages
 ```
 
-With `s3:` enabled, hosted packages live in R2. The cache always stays local and is safe to wipe. There is no container volume in this sample.
+With `s3:` enabled, hosted packages live in R2 under `packages/`. Proxied upstream packages from npmjs are cached through an R2 FUSE mount under `cache/`.
+
+That means a request such as `GET /typescript` resolves through the `npmjs` upstream, then pnpr writes its upstream cache files under the R2 `cache/` prefix. This uses filesystem semantics through FUSE, so expect object-storage latency rather than local SSD speed.
 
 ### Registry Routing
 

@@ -34,8 +34,10 @@
   },
   "secrets": {
     "required": [
+      "PNPR_PUBLIC_URL",
       "PNPR_SECRET",
       "PNPR_R2_ACCOUNT_ID",
+      "PNPR_R2_BUCKET",
       "PNPR_R2_ACCESS_KEY_ID",
       "PNPR_R2_SECRET_ACCESS_KEY"
     ]

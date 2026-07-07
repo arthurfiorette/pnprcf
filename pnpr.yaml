@@ -1,10 +1,10 @@
 # pnpr config for Cloudflare Containers.
 #
-# Hosted package data is stored in Cloudflare R2 through pnpr's S3-compatible
-# backend. The local paths below are container scratch space for upstream cache
-# and upload staging, not durable volumes.
+# Hosted package data is stored in Cloudflare R2 under `packages/` through
+# pnpr's S3-compatible backend. Proxied upstream packages from npmjs are cached
+# through a FUSE mount of the same R2 bucket under `cache/`.
 storage: /pnpr/storage
-cache: /pnpr/cache
+cache: /mnt/r2/cache
 
 secret: ${PNPR_SECRET}
 
@@ -12,7 +12,7 @@ s3:
   bucket: ${PNPR_R2_BUCKET}
   region: auto
   endpoint: https://${PNPR_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
-  prefix: ${PNPR_R2_PREFIX}
+  prefix: packages
   accessKeyId: ${PNPR_R2_ACCESS_KEY_ID}
   secretAccessKey: ${PNPR_R2_SECRET_ACCESS_KEY}
 
