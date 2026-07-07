@@ -1,0 +1,53 @@
+# Example adding a private upstream behind pnpr-managed credentials.
+# Build a custom pnpr image if your auth backend needs postgres/mysql features.
+storage: /pnpr/storage
+cache: /pnpr/cache
+secret: ${PNPR_SECRET}
+
+s3:
+  bucket: ${PNPR_R2_BUCKET}
+  region: auto
+  endpoint: https://${PNPR_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  prefix: ${PNPR_R2_PREFIX}
+  accessKeyId: ${PNPR_R2_ACCESS_KEY_ID}
+  secretAccessKey: ${PNPR_R2_SECRET_ACCESS_KEY}
+
+groups:
+  engineering: [alice, bob]
+
+auth:
+  htpasswd:
+    file: /pnpr/storage/htpasswd
+    max_users: -1
+  tokens:
+    file: /pnpr/storage/tokens.db
+
+registries:
+  local:
+    type: hosted
+    org: local
+    packages:
+      '@mycompany/*':
+        access: $authenticated
+        publish: engineering
+        unpublish: engineering
+  corp:
+    type: upstream
+    url: ${PNPR_CORP_REGISTRY_URL}
+    auth:
+      type: bearer
+      token_env: PNPR_CORP_NPM_TOKEN
+    access: engineering
+    packages:
+      '@corp/*': {}
+  npmjs:
+    type: upstream
+    url: https://registry.npmjs.org/
+    public: true
+  main:
+    type: router
+    sources: [local, corp, npmjs]
+
+defaultRegistry: main
+resolver:
+  enabled: true

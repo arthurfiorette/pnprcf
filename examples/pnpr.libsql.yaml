@@ -1,0 +1,43 @@
+# Shared-auth variant for more than one pnpr replica.
+# The official pnpr image includes the libsql backend feature.
+storage: /pnpr/storage
+cache: /pnpr/cache
+secret: ${PNPR_SECRET}
+
+s3:
+  bucket: ${PNPR_R2_BUCKET}
+  region: auto
+  endpoint: https://${PNPR_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  prefix: ${PNPR_R2_PREFIX}
+  accessKeyId: ${PNPR_R2_ACCESS_KEY_ID}
+  secretAccessKey: ${PNPR_R2_SECRET_ACCESS_KEY}
+
+auth:
+  htpasswd:
+    # Set to a non-negative number only when you intentionally want users to
+    # self-register. `-1` disables new registrations.
+    max_users: -1
+
+backend:
+  libsql:
+    url: ${PNPR_LIBSQL_URL}
+    authToken: ${PNPR_LIBSQL_TOKEN}
+    replicaPath: /pnpr/cache/auth-replica.db
+    syncIntervalSecs: 60
+
+registries:
+  npmjs:
+    type: upstream
+    url: https://registry.npmjs.org/
+    public: true
+  main:
+    type: router
+    sources: [npmjs]
+
+defaultRegistry: main
+resolver:
+  enabled: true
+log:
+  type: stdout
+  format: json
+  level: http

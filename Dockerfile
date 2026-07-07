@@ -1,24 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.24-alpine AS build
+ARG PNPR_VERSION=0.0.0-26070301
+FROM ghcr.io/pnpm/pnpr:${PNPR_VERSION}
 
-# Set destination for COPY
-WORKDIR /app
+COPY --chown=pnpr:pnpr pnpr.yaml /pnpr/config.yaml
 
-# Download any Go modules
-COPY container_src/go.mod ./
-RUN go mod download
+EXPOSE 7677
 
-# Copy container source code
-COPY container_src/*.go ./
-
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /server
-
-FROM scratch
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build /server /server
-EXPOSE 8080
-
-# Run
-CMD ["/server"]
+# Use a shell so Cloudflare-provided runtime env vars can configure the public
+# URL without baking deployment-specific hostnames into the image.
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["exec pnpr --listen 0.0.0.0:7677 --config /pnpr/config.yaml --public-url \"${PNPR_PUBLIC_URL:?PNPR_PUBLIC_URL is required}\""]

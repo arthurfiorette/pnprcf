@@ -1,0 +1,9 @@
+node_modules
+.wrangler
+.git
+.env*
+.dev.vars*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+*.local

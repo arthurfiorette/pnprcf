@@ -1,0 +1,64 @@
+# pnpr config for Cloudflare Containers.
+#
+# Hosted package data is stored in Cloudflare R2 through pnpr's S3-compatible
+# backend. The local paths below are container scratch space for upstream cache
+# and upload staging, not durable volumes.
+storage: /pnpr/storage
+cache: /pnpr/cache
+
+secret: ${PNPR_SECRET}
+
+s3:
+  bucket: ${PNPR_R2_BUCKET}
+  region: auto
+  endpoint: https://${PNPR_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+  prefix: ${PNPR_R2_PREFIX}
+  accessKeyId: ${PNPR_R2_ACCESS_KEY_ID}
+  secretAccessKey: ${PNPR_R2_SECRET_ACCESS_KEY}
+
+# No auth backend is configured by default because this sample starts as a
+# public npmjs proxy/resolver. If you add hosted private packages, do not use
+# local htpasswd/tokens.db on Cloudflare Containers for production: container
+# disk is not a durable shared volume. Use a shared SQL auth backend instead
+# (see examples/pnpr.libsql.yaml), or accept that local auth state is ephemeral
+# and single-instance only.
+#
+# auth:
+#   htpasswd:
+#     file: /pnpr/storage/htpasswd
+#     max_users: -1
+#   tokens:
+#     file: /pnpr/storage/tokens.db
+
+registries:
+  npmjs:
+    type: upstream
+    url: https://registry.npmjs.org/
+    public: true
+    cache: true
+
+  main:
+    type: router
+    sources: [npmjs]
+
+  # To host a private scope later, add a hosted registry before npmjs and
+  # change the router to `sources: [local, npmjs]`:
+  #
+  # local:
+  #   type: hosted
+  #   org: local
+  #   packages:
+  #     '@mycompany/*':
+  #       access: $authenticated
+  #       publish: $authenticated
+  #       unpublish: $authenticated
+
+defaultRegistry: main
+
+resolver:
+  enabled: true
+
+log:
+  type: stdout
+  format: json
+  level: http
