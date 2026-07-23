@@ -3,7 +3,7 @@
   "description": "Example pnpr registry deployment on Cloudflare Containers with R2 storage",
   "dependencies": {
     "@cloudflare/containers": "0.0.30",
-    "hono": "4.11.1"
+    "hono": "4.12.27"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
